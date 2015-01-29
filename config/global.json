@@ -1,0 +1,14 @@
+{
+    "applications": {
+        "HealthApp": {
+            "applicationId": "vNmHb7Gvkgji498TMTEARjDB2oRJhgDZb04I3hNW", 
+            "masterKey": "L7qNPh8jmYRJ6rgoVit15lH1qurZ53MOqW2m42Ce"
+        }, 
+        "_default": {
+            "link": "HealthApp"
+        }
+    }, 
+    "global": {
+        "parseVersion": "1.3.2"
+    }
+}
