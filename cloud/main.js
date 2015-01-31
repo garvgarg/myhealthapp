@@ -346,3 +346,10 @@ var newGitHubUser = function(accessToken, githubData) {
     return upsertGitHubUser(accessToken, githubData);
   });
 }
+
+//algoithm function begins
+test_algo = require("cloud/test_algorithm")
+Parse.Cloud.define("algo", function(request, response) {
+	test_algo.test(response.success);  
+});
+//algoithm function ends
