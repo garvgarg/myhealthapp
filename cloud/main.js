@@ -5,6 +5,7 @@ var express = require('express');
 var querystring = require('querystring');
 var _ = require('underscore');
 var Buffer = require('buffer').Buffer;
+var moment = require('moment');
 
 /**
  * Create an express application instance
@@ -32,19 +33,228 @@ restrictedAcl.setPublicWriteAccess(false);
 /**
  * Global app configuration section
  */
-app.set('views', 'cloud/views');  // Specify the folder to find templates
-app.set('view engine', 'ejs');    // Set the template engine
-app.use(express.bodyParser());    // Middleware for reading request body
+app.set('views', 'cloud/views'); // Specify the folder to find templates
+app.set('view engine', 'ejs'); // Set the template engine
+app.use(express.bodyParser()); // Middleware for reading request body
 
-  // You could have a "Log In" link on your website pointing to this.
-  app.get('/myhealthlogin', function(req, res) {
-    // Renders the login form asking for username and password.
-    res.render('myhealthlogin.ejs');
+
+/**
+ * create Parse.request to algorithm api
+ *
+ * return api-response on Parse.client-side
+ */
+
+
+
+Parse.Cloud.define('fetchDataFromAlgorithm', function (req, res) {
+
+
+  var currentUser = req.user;
+  var fetchResponse = {
+    status: '200',
+    statusMessage: 'Successfully fetched'
+  };
+
+  var url = "http://projectvision-health2.herokuapp.com/api";
+
+  completionAccess(currentUser).then(function (access) {
+    if (access) {
+
+      getAlgoData(currentUser).then(function (algodata) {
+
+        Parse.Cloud.httpRequest({
+          url: url,
+          params: algodata,
+          headers: {
+            'Content-Type': 'application/json'
+          },
+
+          success: function (httpResponse) {
+            var algoData = JSON.parse(httpResponse.text);
+
+            var fd = moment(algoData.final_date, 'DD-MM-YYYY').format("YYYY-MM-DD");
+
+
+            currentUser.set('ABSI_zscore', algoData.absi_zscore);
+            currentUser.set('Final_Date', new Date(fd));
+            currentUser.set('Waist_Circumference_Ideal', algoData.wc_ideal);
+
+            var fitnessRelation = currentUser.relation("Focus1_GroupID");
+            var dietRelation = currentUser.relation("Focus2_GroupID");
+            var mindRelation = currentUser.relation("Focus3_GroupID");
+
+            var relationArray = [
+              fitnessRelation.query().find({
+                success: function (list) {
+                  _.each(list, function (relation) {
+                    fitnessRelation.remove(relation);
+                  });
+                }
+              }),
+              dietRelation.query().find({
+                success: function (list) {
+                  _.each(list, function (relation) {
+                    dietRelation.remove(relation);
+                  });
+                }
+              }),
+              mindRelation.query().find({
+                success: function (list) {
+                  _.each(list, function (relation) {
+                    mindRelation.remove(relation);
+                  });
+                }
+              })
+            ]
+            Parse.Promise.when(relationArray).then(function () {
+
+              var ChallengeGroupArray = [];
+
+              _.each(algoData.activity_groups_name, function (name) {
+
+                ChallengeGroupArray.push(
+                  new Parse.Query("ChallengeGroup").equalTo('GroupName', name).find().then(
+                    function (challenge) {
+                      if (typeof(challenge[0]) !== 'undefined') {
+                        fitnessRelation.add(challenge[0])
+                      }
+                    })
+                );
+              });
+              _.each(algoData.stress_activities_id, function (name) {
+
+                ChallengeGroupArray.push(
+                  new Parse.Query("ChallengeGroup").equalTo('GroupName', name).find().then(
+                    function (challenge) {
+                      if (typeof(challenge[0]) !== 'undefined') {
+                        mindRelation.add(challenge[0])
+                      }
+                    })
+                );
+              });
+              _.each(algoData.diet_groups_challenge, function (name) {
+
+                ChallengeGroupArray.push(
+                  new Parse.Query("ChallengeGroup").equalTo('GroupName', name).find().then(
+                    function (challenge) {
+                      if (typeof(challenge[0]) !== 'undefined') {
+                        dietRelation.add(challenge[0])
+                      }
+                    })
+                );
+              });
+
+              Parse.Promise.when(ChallengeGroupArray).then(function () {
+                currentUser.save(
+                  null, {
+                    success: function () {
+                      res.success(fetchResponse);
+                    }
+                  }
+                );
+              });
+
+            });
+
+
+          },
+
+          error: function (httpResponse) {
+            fetchResponse.status = '400';
+            fetchResponse.statusMessage = 'Request failed';
+            res.success(fetchResponse);
+          }
+
+        });
+      });
+
+    } else {
+      fetchResponse.status = '100';
+      fetchResponse.statusMessage = 'Completion rate failed';
+      res.success(fetchResponse);
+    }
+
   });
 
-  // Clicking submit on the login form triggers this.
-  app.post('/myhealthlogin', function(req, res) {
-    Parse.User.logIn(req.body.username, req.body.password).then(function() {
+
+});
+
+Parse.Cloud.define('getChallenges', function (req, res) {
+
+  var currentUser = req.user;
+  var challenges = {};
+  var ChallengesArray = [];
+  var fitness = [];
+  var diet = [];
+  var mind = [];
+
+  var ch = [
+    currentUser.relation('Focus1_GroupID').query().find().then(
+      function (fitnessChallenges) {
+
+        _.each(fitnessChallenges, function (fitnessChallenge) {
+          ChallengesArray.push(
+            new Parse.Query("Challenges").equalTo('GroupID', fitnessChallenge).find().then(
+              function (challenge) {
+                if (typeof(challenge[0]) !== 'undefined') {
+                  fitness.push.apply(fitness, challenge)
+                }
+              })
+          );
+        });
+
+      }
+    ),
+
+    currentUser.relation('Focus2_GroupID').query().find().then(
+      function (dietChallenges) {
+
+        _.each(dietChallenges, function (dietChallenge) {
+          ChallengesArray.push(
+            new Parse.Query("Challenges").equalTo('GroupID', dietChallenge).find().then(
+              function (challenge) {
+                if (typeof(challenge[0]) !== 'undefined') {
+                  diet.push.apply(diet, challenge)
+                }
+              })
+          );
+        });
+
+      }
+    ),
+    currentUser.relation('Focus3_GroupID').query().find().then(
+      function (mindChallenges) {
+
+        _.each(mindChallenges, function (mindChallenge) {
+          ChallengesArray.push(
+            new Parse.Query("Challenges").equalTo('GroupID', mindChallenge).find().then(
+              function (challenge) {
+                if (typeof(challenge[0]) !== 'undefined') {
+                  mind.push.apply(mind, challenge)
+                }
+              })
+          );
+        });
+
+      }
+    )
+  ];
+  Parse.Promise.when(ch).then(function () {
+    Parse.Promise.when(ChallengesArray).then(function () {
+      challenges.fitness = fitness;
+      challenges.diet = diet;
+      challenges.mind = mind;
+      res.success(challenges);
+    })
+  });
+
+
+});
+
+
+// Clicking submit on the login form triggers this.
+app.post('/myhealthlogin', function (req, res) {
+  Parse.User.logIn(req.body.username, req.body.password).then(function () {
       // Login succeeded, redirect to homepage.
       // parseExpressCookieSession will automatically set cookie. 
       res.render('login.ejs');
@@ -53,13 +263,13 @@ app.use(express.bodyParser());    // Middleware for reading request body
       // Login failed, redirect back to login form.
       res.redirect('/');
     });
-  });
+});
 
-  // You could have a "Log Out" link on your website pointing to this.
-  app.get('/logout', function(req, res) {
-    Parse.User.logOut();
-    res.redirect('/');
-  });
+// You could have a "Log Out" link on your website pointing to this.
+app.get('/logout', function (req, res) {
+  Parse.User.logOut();
+  res.redirect('/');
+});
 
 var requestEndpoint = 'https://api.fitbit.com/oauth/request_token';
 var redirectEndpoint = 'https://www.fitbit.com/oauth/authorize?';
@@ -76,43 +286,43 @@ var consumerSecret = '79dbe36bec3841359f6474b662570ae8';
  * When called, render the login.ejs view
  */
 app.get('/', function(req, res) {
-   // res.render('myhealthlogin.ejs');
+  // res.render('myhealthlogin.ejs');
   res.render('login', {});
 });
 
 var oauth_access_callback = function(err, token, token_secret, parsedQueryString, data) {
-	console.log("Oauth Access Callback function called");
-	console.log(err);
-	console.log(token);
-	console.log(token_secret);
-	console.log(parsedQueryString);
+  console.log("Oauth Access Callback function called");
+  console.log(err);
+  console.log(token);
+  console.log(token_secret);
+  console.log(parsedQueryString);
 }
 
 var oauth_callback = function(err, token, token_secret, parsedQueryString, data, res) {
-   
-   console.error("Call back function called");
-   console.error(err);
-   console.error(token);
-   console.error(token_secret);
-   console.error(parsedQueryString);
-   var oa_data = querystring.parse(data);
-   var url = redirectEndpoint + data;
-   console.log(url);   
-   var requestOptions = {
-	url : url,
-	followRedirects: true,
-   };
 
-   requestOptions.success = function(response) {
-        console.log("response status: " + response.status);	
-   } 
-   
-   requestOptions.error = function(err) {
-        console.log("error");
-        callback(err);
-   };
-   
-   Parse.Cloud.httpRequest(requestOptions);
+  console.error("Call back function called");
+  console.error(err);
+  console.error(token);
+  console.error(token_secret);
+  console.error(parsedQueryString);
+  var oa_data = querystring.parse(data);
+  var url = redirectEndpoint + data;
+  console.log(url);
+  var requestOptions = {
+    url: url,
+    followRedirects: true,
+  };
+
+  requestOptions.success = function (response) {
+    console.log("response status: " + response.status);
+  }
+
+  requestOptions.error = function (err) {
+    console.log("error");
+    callback(err);
+  };
+
+  Parse.Cloud.httpRequest(requestOptions);
 }
 /**
  * Login with GitHub route.
@@ -121,8 +331,8 @@ var oauth_callback = function(err, token, token_secret, parsedQueryString, data,
  */
 app.get('/authorize', function(req, res) {
 
-   var oa = new OAuth(requestEndpoint, redirectEndpoint, consumerKey, consumerSecret, "1.0", null, "HMAC-SHA1");
-   oa.getOAuthRequestToken(oauth_callback);
+  var oa = new OAuth(requestEndpoint, redirectEndpoint, consumerKey, consumerSecret, "1.0", null, "HMAC-SHA1");
+  oa.getOAuthRequestToken(oauth_callback);
 });
 
 /**
@@ -142,7 +352,9 @@ app.get('/oauthCallback', function(req, res) {
    * Render an error page if this is invalid.
    */
   if (!(data && data.code && data.state)) {
-    res.render('error', { errorMessage: 'Invalid auth response received.'});
+    res.render('error', {
+      errorMessage: 'Invalid auth response received.'
+    });
     return;
   }
   var query = new Parse.Query(TokenRequest);
@@ -187,7 +399,9 @@ app.get('/oauthCallback', function(req, res) {
      * Render a page which sets the current user on the client-side and then
      *   redirects to /main
      */
-    res.render('store_auth', { sessionToken: user.getSessionToken() });
+    res.render('store_auth', {
+      sessionToken: user.getSessionToken()
+    });
   }, function(error) {
     /**
      * If the error is an object error (e.g. from a Parse function) convert it
@@ -196,7 +410,9 @@ app.get('/oauthCallback', function(req, res) {
     if (error && error.code && error.error) {
       error = error.code + ' ' + error.error;
     }
-    res.render('error', { errorMessage: JSON.stringify(error) });
+    res.render('error', {
+      errorMessage: JSON.stringify(error)
+    });
   });
 
 });
@@ -228,7 +444,9 @@ Parse.Cloud.define('getGitHubData', function(request, response) {
   query.equalTo('user', request.user);
   query.ascending('createdAt');
   Parse.Promise.as().then(function() {
-    return query.first({ useMasterKey: true });
+    return query.first({
+      useMasterKey: true
+    });
   }).then(function(tokenData) {
     if (!tokenData) {
       return Parse.Promise.error('No GitHub data found.');
@@ -241,6 +459,106 @@ Parse.Cloud.define('getGitHubData', function(request, response) {
     response.error(error);
   });
 });
+
+var login = function (username, pass) {
+  return Parse.User.logIn(username, pass);
+};
+
+
+var getAlgoData = function (currentUser) {
+
+  var username = currentUser.get('username');
+
+  var algoData = {};
+
+  var completion = [
+    new Parse.Query('Lifestyle').equalTo('username', username).find().then(
+      function (userLifeStyle) {
+        algoData.activity_level = userLifeStyle[0].get('ActivityLevel');
+      }
+    ),
+    new Parse.Query('Demographics').equalTo('username', username).find().then(
+      function (userDemographics) {
+        var dob = moment(userDemographics[0].get('DOB'), "MM/DD/YY").format("MM/DD/YYYY");
+        algoData.height = userDemographics[0].get('HEIGHT');
+        algoData.weight = userDemographics[0].get('WEIGHT');
+        algoData.dob = dob;
+        algoData.ethnicity = userDemographics[0].get('ETHNICITY');
+        algoData.gender_id = userDemographics[0].get('GENDER');
+        algoData.somatotype = userDemographics[0].get('SOMATOTYPE');
+        algoData.waist_cf = '70';
+      }
+    ),
+    new Parse.Query('Diet').equalTo('username', username).find().then(
+      function (userDiet) {
+        algoData.food_group_4 = userDiet[0].get('CALCIUM');
+        algoData.food_group_3 = userDiet[0].get('FRUITS_VEG');
+        algoData.food_group_2 = userDiet[0].get('GRAIN');
+        algoData.food_group_1 = userDiet[0].get('HABITS');
+        algoData.food_group_5 = userDiet[0].get('MEATS');
+        algoData.food_group_6 = userDiet[0].get('SAT_FAT');
+        algoData.food_group_7 = userDiet[0].get('SUGAR');
+      }
+    ),
+    new Parse.Query('Stress_Level').equalTo('username', username).find().then(
+      function (userStressLevel) {
+        algoData.stress_level = userStressLevel[0].get('STRESS_LEVEL');
+      }
+    )
+  ];
+
+
+  return Parse.Promise.when(completion).then(function () {
+    return algoData;
+  });
+};
+
+var completionAccess = function (currentUser) {
+
+  var username = currentUser.get('username');
+
+  var access = [];
+
+  setAccess = function (data) {
+    if (data[0].get('COMPLETIONRATE') === '100') {
+      access.push(true);
+    } else access.push(false);
+  };
+
+
+  var completion = [
+    new Parse.Query('Lifestyle').equalTo('username', username).find().then(
+      this.setAccess
+    ),
+
+    new Parse.Query('Demographics').equalTo('username', username).find().then(
+      this.setAccess
+    ),
+
+    new Parse.Query('Health_Beliefs').equalTo('username', username).find().then(
+      this.setAccess
+    ),
+
+    new Parse.Query('Diet').equalTo('username', username).find().then(
+      this.setAccess
+    ),
+
+    new Parse.Query('Stress_Level').equalTo('username', username).find().then(
+      this.setAccess
+    )
+  ];
+
+
+  return Parse.Promise.when(completion).then(function () {
+    if (_.indexOf(access, false) === -1) {
+      return true;
+    }
+    return false;
+  });
+
+};
+
+
 
 /**
  * This function is called when GitHub redirects the user back after
@@ -272,7 +590,9 @@ var getGitHubUserDetails = function(accessToken) {
   return Parse.Cloud.httpRequest({
     method: 'GET',
     url: githubUserEndpoint,
-    params: { access_token: accessToken },
+    params: {
+      access_token: accessToken
+    },
     headers: {
       'User-Agent': 'Parse.com Cloud Code'
     }
@@ -289,14 +609,18 @@ var upsertGitHubUser = function(accessToken, githubData) {
   query.equalTo('githubId', githubData.id);
   query.ascending('createdAt');
   // Check if this githubId has previously logged in, using the master key
-  return query.first({ useMasterKey: true }).then(function(tokenData) {
+  return query.first({
+    useMasterKey: true
+  }).then(function (tokenData) {
     // If not, create a new user.
     if (!tokenData) {
       return newGitHubUser(accessToken, githubData);
     }
     // If found, fetch the user.
     var user = tokenData.get('user');
-    return user.fetch({ useMasterKey: true }).then(function(user) {
+    return user.fetch({
+      useMasterKey: true
+    }).then(function (user) {
       // Update the accessToken if it is different.
       if (accessToken !== tokenData.get('accessToken')) {
         tokenData.set('accessToken', accessToken);
@@ -305,7 +629,9 @@ var upsertGitHubUser = function(accessToken, githubData) {
        * This save will not use an API request if the token was not changed.
        * e.g. when a new user is created and upsert is called again.
        */
-      return tokenData.save(null, { useMasterKey: true });
+      return tokenData.save(null, {
+        useMasterKey: true
+      });
     }).then(function(obj) {
       // Return the user object.
       return Parse.Promise.as(user);
@@ -341,7 +667,9 @@ var newGitHubUser = function(accessToken, githubData) {
     ts.set('user', user);
     ts.setACL(restrictedAcl);
     // Use the master key because TokenStorage objects should be protected.
-    return ts.save(null, { useMasterKey: true });
+    return ts.save(null, {
+      useMasterKey: true
+    });
   }).then(function(tokenStorage) {
     return upsertGitHubUser(accessToken, githubData);
   });
@@ -350,6 +678,6 @@ var newGitHubUser = function(accessToken, githubData) {
 //algoithm function begins
 test_algo = require("cloud/test_algorithm")
 Parse.Cloud.define("algo", function(request, response) {
-	test_algo.test(response.success);  
+  test_algo.test(response.success);
 });
 //algoithm function ends
