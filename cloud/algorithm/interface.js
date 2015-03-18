@@ -1,4 +1,3 @@
-var querystring = require('querystring');
 var http = require('http');
 
 /**
@@ -61,7 +60,7 @@ var getAlgoData = function (currentUser) {
  * @param currentUser
  * @returns {bool} is profile complete
  */
-var completionAccess = function (currentUser) {
+var isProfileComplete = function (currentUser) {
 
   var username = currentUser.get('username');
 
@@ -107,7 +106,7 @@ var completionAccess = function (currentUser) {
 
 
 /**
- *
+ * Fetches data from heroku-based algorithm and put the data into
  *
  * @param req request object
  * @param res response object
@@ -122,7 +121,7 @@ var fetchDataFromAlgorithm = function (req, res) {
 
   var url = "http://projectvision-health2.herokuapp.com/api";
 
-  completionAccess(currentUser).then(function (access) {
+  isProfileComplete(currentUser).then(function (access) {
     if (access) {
 
       getAlgoData(currentUser).then(function (algodata) {
@@ -239,6 +238,12 @@ var fetchDataFromAlgorithm = function (req, res) {
   });
 };
 
+/**
+ * Returns list of challenges for a client
+ *
+ * @param req
+ * @param res
+ */
 var getChallenges = function (req, res) {
   var currentUser = req.user;
   var challenges = {};
@@ -312,4 +317,4 @@ var getChallenges = function (req, res) {
 exports.getChallenges = getChallenges;
 exports.getAlgoData = getAlgoData;
 exports.fetchDataFromAlgorithm = fetchDataFromAlgorithm;
-exports.isCompleteProfile = completionAccess;
+exports.isProfileComplete = isProfileComplete;
