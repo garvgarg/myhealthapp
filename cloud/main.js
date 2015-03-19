@@ -384,7 +384,7 @@ Parse.Cloud.define("algo", function(request, response) {
  */
 
 // Import functions
-var algorithm = require('algorithm/interface.js');
+var algorithm = require('cloud/algorithm/interface.js');
 
 // Define endpoints
 Parse.Cloud.define('fetchDataFromAlgorithm', algorithm.fetchDataFromAlgorithm);

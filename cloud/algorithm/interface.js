@@ -1,4 +1,6 @@
 var http = require('http');
+var _ = require('underscore');
+var moment = require('moment');
 
 /**
  * Gathers required data for algorithm from parse.com database into a single dictionary
@@ -12,6 +14,7 @@ var getAlgoData = function (currentUser) {
 
   var algoData = {};
 
+  // create array of promises which get data from Parse
   var completion = [
     new Parse.Query('Lifestyle').equalTo('username', username).find().then(
       function (userLifeStyle) {
@@ -27,7 +30,7 @@ var getAlgoData = function (currentUser) {
         algoData.ethnicity = userDemographics[0].get('ETHNICITY');
         algoData.gender_id = userDemographics[0].get('GENDER');
         algoData.somatotype = userDemographics[0].get('SOMATOTYPE');
-        algoData.waist_cf = '70';
+        algoData.waist_cf = userDemographics[0].get('Waist_Circumference');
       }
     ),
     new Parse.Query('Diet').equalTo('username', username).find().then(
@@ -48,6 +51,7 @@ var getAlgoData = function (currentUser) {
     )
   ];
 
+  // return object with all data which needed for heroku algorithm
   return Parse.Promise.when(completion).then(function () {
     return algoData;
   });
@@ -72,7 +76,7 @@ var isProfileComplete = function (currentUser) {
     } else access.push(false);
   };
 
-
+  // create array of promises which check completionRate 
   var completion = [
     new Parse.Query('Lifestyle').equalTo('username', username).find().then(
       this.setAccess
@@ -95,6 +99,7 @@ var isProfileComplete = function (currentUser) {
     )
   ];
 
+  // return profile complete state 
   return Parse.Promise.when(completion).then(function () {
     if (_.indexOf(access, false) === -1) {
       return true;
@@ -121,11 +126,14 @@ var fetchDataFromAlgorithm = function (req, res) {
 
   var url = "http://projectvision-health2.herokuapp.com/api";
 
+  // check complete state
   isProfileComplete(currentUser).then(function (access) {
     if (access) {
 
+      // get data which needed for heroku algorithm 
       getAlgoData(currentUser).then(function (algodata) {
 
+        // create request to heroku
         Parse.Cloud.httpRequest({
           url: url,
           params: algodata,
@@ -134,11 +142,13 @@ var fetchDataFromAlgorithm = function (req, res) {
           },
 
           success: function (httpResponse) {
+
+            // format data to json from heroku
             var algoData = JSON.parse(httpResponse.text);
 
             var fd = moment(algoData.final_date, 'DD-MM-YYYY').format("YYYY-MM-DD");
 
-
+            // save data from heroku to Parse
             currentUser.set('ABSI_zscore', algoData.absi_zscore);
             currentUser.set('Final_Date', new Date(fd));
             currentUser.set('Waist_Circumference_Ideal', algoData.wc_ideal);
@@ -147,6 +157,7 @@ var fetchDataFromAlgorithm = function (req, res) {
             var dietRelation = currentUser.relation("Focus2_GroupID");
             var mindRelation = currentUser.relation("Focus3_GroupID");
 
+            // clear relations before set new data from heroku
             var relationArray = [
               fitnessRelation.query().find({
                 success: function (list) {
@@ -170,6 +181,8 @@ var fetchDataFromAlgorithm = function (req, res) {
                 }
               })
             ];
+
+            // save new data to Parse 
             Parse.Promise.when(relationArray).then(function () {
 
               var ChallengeGroupArray = [];
@@ -208,6 +221,7 @@ var fetchDataFromAlgorithm = function (req, res) {
                 );
               });
 
+              // save currentUser with new data
               Parse.Promise.when(ChallengeGroupArray).then(function () {
                 currentUser.save(
                   null, {
@@ -221,6 +235,8 @@ var fetchDataFromAlgorithm = function (req, res) {
           },
 
           error: function (httpResponse) {
+
+            // send error message if heroku request failed 
             fetchResponse.status = '400';
             fetchResponse.statusMessage = 'Request failed';
             res.success(fetchResponse);
@@ -230,6 +246,8 @@ var fetchDataFromAlgorithm = function (req, res) {
       });
 
     } else {
+
+      // send info message if profile complete access denied
       fetchResponse.status = '100';
       fetchResponse.statusMessage = 'Profile is not completed yet';
       res.success(fetchResponse);
@@ -252,6 +270,9 @@ var getChallenges = function (req, res) {
   var diet = [];
   var mind = [];
 
+
+  // build array which get all data about Challenges which related to GroupChallenges 
+  //for each focus group for currentUser
   var ch = [
     currentUser.relation('Focus1_GroupID').query().find().then(
       function (fitnessChallenges) {
@@ -302,6 +323,8 @@ var getChallenges = function (req, res) {
     )
   ];
 
+  // return object which consist all challenges 
+  //for each focus group for currentUser
   Parse.Promise.when(ch).then(function () {
     Parse.Promise.when(ChallengesArray).then(function () {
       challenges.fitness = fitness;
