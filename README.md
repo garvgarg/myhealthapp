@@ -16,8 +16,8 @@ parse deploy
 
 ## Styleguide
 
-Commit: https://github.com/angular/angular/blob/master/CONTRIBUTING.md#-commit-message-guidelines
-CodeStyle: https://github.com/rwaldron/idiomatic.js
+- Commit: https://github.com/angular/angular/blob/master/CONTRIBUTING.md#-commit-message-guidelines
+- CodeStyle: https://github.com/rwaldron/idiomatic.js
 
 
 # Folder structure
@@ -39,10 +39,13 @@ put link here
 TBD
 
 
-## Tables
+## Data Tables
 
 TBD
 
+# Cloud hosting
+
+Base url:  http://myhealth.parseapp.com
 
 # Cloud points
 
