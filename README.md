@@ -41,7 +41,8 @@ TBD
 
 ## Data Tables
 
-TBD
+### UserChallenges
+Table contains records of challenges accepted by users
 
 # Cloud hosting
 
@@ -51,3 +52,13 @@ Base url:  http://myhealth.parseapp.com
 
 - *fetchDataFromAlgorithm* -- if assessment for current user is complete, then it sends required data to weight loss algorithm
 - *getChallenges* -- returns challenges for current user grouped by focus groups
+- *getChallengesCompletionRateOverPeriod* -- returns challenges completion rate over 2 week periods
+
+
+# DB Changelog
+
+## 20-03-2015
+- Added user field to UserChallenges table
+- Added completedAt field to UserChallenges table
+- Deprecated userId field at UserChallenges table
+

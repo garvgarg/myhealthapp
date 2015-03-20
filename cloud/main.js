@@ -389,3 +389,7 @@ var algorithm = require('cloud/algorithm/interface.js');
 // Define endpoints
 Parse.Cloud.define('fetchDataFromAlgorithm', algorithm.fetchDataFromAlgorithm);
 Parse.Cloud.define('getChallenges', algorithm.getChallenges);
+
+var challenges = require('cloud/challenges/completion.js');
+Parse.Cloud.define('getChallengesCompletionRateOverPeriod', challenges.getChallengesCompletionRateOverPeriod);
+
