@@ -23,20 +23,14 @@ describe('Cloud points', function () {
 
       expect(methodsCount).to.equal(4);
     });
+
+    it('should return proper value on getChallenges call', function () {
+
+      var res = {};
+      var req = {};
+
+      // Shouldn't have any exceptions on empty call
+    });
   });
-
-  it('should return proper value on getChallenges call', function () {
-
-    //expect(Parse).to.be.an('object');
-    var res = {};
-    var req = {};
-
-    // Shouldn't have any exceptions on empty call
-    expect(function () {
-      algo.getChallenges(req, res)
-    }).to.not.throw(Error);
-
-  });
-
 
 });
