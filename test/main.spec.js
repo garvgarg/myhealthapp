@@ -6,10 +6,14 @@ var chaiAsPromised = require("chai-as-promised");
 
 var Parse = require("parse");
 
+var parseMock = require('parse-mock');
+
 chai.use(chaiAsPromised);
 
 
-var algo = require('../cloud/algorithm/interface.js')
+var algo = require('../cloud/algorithm/interface.js');
+
+var completion = require('../cloud/algorithm/completion.js');
 
 describe('Cloud points', function () {
   describe('for Weight Loss Algorithm', function () {
@@ -33,4 +37,9 @@ describe('Cloud points', function () {
     });
   });
 
+  describe('for Challenges completion rate', function () {
+    it('should calculate items properly', function () {
+
+    });
+  });
 });
