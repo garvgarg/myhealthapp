@@ -1,22 +1,23 @@
-var _ = require('lodash');
-
-var chai = require("chai");
-var expect = chai.expect;
-var chaiAsPromised = require("chai-as-promised");
-
-var Parse = require("parse");
-
-var parseMock = require('parse-mock');
+var _ = require('underscore'),
+  chai = require("chai"),
+  expect = chai.expect,
+  chaiAsPromised = require("chai-as-promised"),
+  Parse = require('parse').Parse,
+  ParseMock = require('parse-mock'),
+  algo = require('../cloud/algorithm/interface.js'),
+  completion = require('../cloud/challenges/completion.js');
 
 chai.use(chaiAsPromised);
 
-
-var algo = require('../cloud/algorithm/interface.js');
-
-var completion = require('../cloud/algorithm/completion.js');
-
 describe('Cloud points', function () {
+
+  afterEach(function () {
+    ParseMock.clearStubs();
+  });
+
   describe('for Weight Loss Algorithm', function () {
+
+
     it('should have proxy methods defined', function () {
       var methodsCount = 0;
 
@@ -39,7 +40,20 @@ describe('Cloud points', function () {
 
   describe('for Challenges completion rate', function () {
     it('should calculate items properly', function () {
+      var user = new Parse.Object('User', {id: 123}),
+        challenge = new Parse.Object('Challenges'), //todo: add GroupID, GroupID.FocusID relations
+        userChallenge = new Parse.Object('UserCallenges'),
+        req = {user: user},
+        res = {};
 
+      ParseMock.stubQueryFind(function () {
+        return {
+          Challenges: [challenge],
+          UserChallenges: [userChallenge]
+        }[this.className];
+      });
+
+      completion.getChallengesCompletionRateOverPeriod(req, res);
     });
   });
 });
