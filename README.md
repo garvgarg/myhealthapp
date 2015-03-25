@@ -8,6 +8,12 @@ npm install
 
 ## Deploy
 
+Install parse commandline
+
+```
+curl -s https://www.parse.com/downloads/cloud_code/installer.sh | sudo /bin/bash
+```
+
 To deploy code to parse.com run
 
 ```
