@@ -1,0 +1,16 @@
+{
+  "name": "myhealthapp",
+  "version": "0.1.0",
+  "description": "Health App Parse Cloud part",
+  "dependencies": {},
+  "devDependencies": {
+    "chai": "^2.1.2",
+    "chai-as-promised": "^4.3.0",
+    "expect.js": "^0.3.1",
+    "lodash": "^3.5.0",
+    "mocha": "^2.2.1",
+    "parse": "^1.3.5",
+    "requirejs": "^2.1.16",
+    "sinon": "^1.14.1"
+  }
+}
