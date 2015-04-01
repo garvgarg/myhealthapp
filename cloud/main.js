@@ -382,6 +382,9 @@ Parse.Cloud.define("algo", function(request, response) {
 /**
  * Cloud functions for communication with algorithm
  */
+var average = require('cloud/average/average.js');
+
+Parse.Cloud.job('calculateAverageFromFitBit', average.calculateAverageFromFitBit);
 
 // Import functions
 var algorithm = require('cloud/algorithm/interface.js');

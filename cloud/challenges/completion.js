@@ -1,7 +1,7 @@
 var http = require('http');
 var _ = require('underscore');
 var moment = require('moment');
-var Parse = require('parse').Parse;
+
 /**
  * Safe division preventing division to zero
  *
