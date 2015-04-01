@@ -11,13 +11,17 @@ var moment = require('moment');
  * @param res response object
  */
 var calculateAverageFromFitBit = function(req, status) {
+
 	Parse.Cloud.useMasterKey();
+
+	// get all users in application
 	new Parse.Query('User').find().then(function(allusers) {
 
 		var allPromises = [];
 		var usersPromises = [];
 		var usersSavePromises = [];
-		var alldata = [];
+		
+
 
 		_.each(allusers, function(user) {
 
@@ -26,11 +30,14 @@ var calculateAverageFromFitBit = function(req, status) {
 
 			for (var i = 1; i < 15; i++) {
 
+
+				// get start and end of day during 2 weeks
 				var startDayForResult = moment().subtract('days', i).sod().format();
 				var startdate = new Date(startDayForResult);
 				var endDayForResult = moment().subtract('days', i).eod().format();
 				var enddate = new Date(endDayForResult);
 
+				// get data from fitbit for every day during 2 weeks
 				promiseArray.push(new Parse.Query('ActivitiesImport')
 					.equalTo('user', user)
 					.greaterThan("Date", startdate)
@@ -42,6 +49,8 @@ var calculateAverageFromFitBit = function(req, status) {
 						}
 					));
 			}
+
+			// create array of promises which collect all data from fitbit to arrays 
 			allPromises.push(Parse.Promise.when(promiseArray).then(function() {
 				var calories = [],
 					exertivehr = [],
@@ -83,13 +92,15 @@ var calculateAverageFromFitBit = function(req, status) {
 
 				});
 
-
+				// return average of all records in array
 				var average = function(arr) {
 					return _.reduce(arr, function(memo, num) {
 						return memo + num;
 					}, 0) / (arr.length === 0 ? 1 : arr.length);
 				}
 
+				// create array of promises which create new or update 
+				// record in UserTable with new average data
 				usersPromises.push(
 
 					new Parse.Query('UserTable').equalTo('Username', user).find().then(function(resultuser) {
