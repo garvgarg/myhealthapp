@@ -394,5 +394,5 @@ Parse.Cloud.define('fetchDataFromAlgorithm', algorithm.fetchDataFromAlgorithm);
 Parse.Cloud.define('getChallenges', algorithm.getChallenges);
 
 var challenges = require('cloud/challenges/completion.js');
-Parse.Cloud.define('getChallengesCompletionRateOverPeriod', challenges.getChallengesCompletionRateOverPeriod);
+Parse.Cloud.job('getChallengesCompletionRateOverPeriod', challenges.getChallengesCompletionRateOverPeriod);
 
