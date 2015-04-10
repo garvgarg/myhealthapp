@@ -6,6 +6,7 @@ var querystring = require('querystring');
 var _ = require('underscore');
 var Buffer = require('buffer').Buffer;
 var moment = require('moment');
+var crypto= require('crypto');
 
 /**
  * Create an express application instance
@@ -46,10 +47,9 @@ app.use(express.bodyParser()); // Middleware for reading request body
 
 
 
-
 // Clicking submit on the login form triggers this.
-app.post('/myhealthlogin', function (req, res) {
-  Parse.User.logIn(req.body.username, req.body.password).then(function () {
+app.post('/myhealthlogin', function(req, res) {
+  Parse.User.logIn(req.body.username, req.body.password).then(function() {
       // Login succeeded, redirect to homepage.
       // parseExpressCookieSession will automatically set cookie. 
       res.render('login.ejs');
@@ -61,7 +61,7 @@ app.post('/myhealthlogin', function (req, res) {
 });
 
 // You could have a "Log Out" link on your website pointing to this.
-app.get('/logout', function (req, res) {
+app.get('/logout', function(req, res) {
   Parse.User.logOut();
   res.redirect('/');
 });
@@ -85,6 +85,8 @@ app.get('/', function(req, res) {
   res.render('login', {});
 });
 
+
+
 var oauth_access_callback = function(err, token, token_secret, parsedQueryString, data) {
   console.log("Oauth Access Callback function called");
   console.log(err);
@@ -95,35 +97,35 @@ var oauth_access_callback = function(err, token, token_secret, parsedQueryString
 
 var oauth_callback = function(err, token, token_secret, parsedQueryString, data, res) {
 
-  console.error("Call back function called");
-  console.error(err);
-  console.error(token);
-  console.error(token_secret);
-  console.error(parsedQueryString);
-  var oa_data = querystring.parse(data);
-  var url = redirectEndpoint + data;
-  console.log(url);
-  var requestOptions = {
-    url: url,
-    followRedirects: true,
-  };
+    console.error("Call back function called");
+    console.error(err);
+    console.error(token);
+    console.error(token_secret);
+    console.error(parsedQueryString);
+    var oa_data = querystring.parse(data);
+    var url = redirectEndpoint + data;
+    console.log(url);
+    var requestOptions = {
+      url: url,
+      followRedirects: true,
+    };
 
-  requestOptions.success = function (response) {
-    console.log("response status: " + response.status);
+    requestOptions.success = function(response) {
+      console.log("response status: " + response.status);
+    }
+
+    requestOptions.error = function(err) {
+      console.log("error");
+      callback(err);
+    };
+
+    Parse.Cloud.httpRequest(requestOptions);
   }
-
-  requestOptions.error = function (err) {
-    console.log("error");
-    callback(err);
-  };
-
-  Parse.Cloud.httpRequest(requestOptions);
-}
-/**
- * Login with GitHub route.
- *
- * When called, generate a request token and redirect the browser to GitHub.
- */
+  /**
+   * Login with GitHub route.
+   *
+   * When called, generate a request token and redirect the browser to GitHub.
+   */
 app.get('/authorize', function(req, res) {
 
   var oa = new OAuth(requestEndpoint, redirectEndpoint, consumerKey, consumerSecret, "1.0", null, "HMAC-SHA1");
@@ -307,7 +309,7 @@ var upsertGitHubUser = function(accessToken, githubData) {
   // Check if this githubId has previously logged in, using the master key
   return query.first({
     useMasterKey: true
-  }).then(function (tokenData) {
+  }).then(function(tokenData) {
     // If not, create a new user.
     if (!tokenData) {
       return newGitHubUser(accessToken, githubData);
@@ -316,7 +318,7 @@ var upsertGitHubUser = function(accessToken, githubData) {
     var user = tokenData.get('user');
     return user.fetch({
       useMasterKey: true
-    }).then(function (user) {
+    }).then(function(user) {
       // Update the accessToken if it is different.
       if (accessToken !== tokenData.get('accessToken')) {
         tokenData.set('accessToken', accessToken);
@@ -379,6 +381,13 @@ Parse.Cloud.define("algo", function(request, response) {
 //algoithm function ends
 
 
+
+var fitbit = require('cloud/fitbit/fitbitOAuth.js');
+
+Parse.Cloud.define('saveFitBitOAuthData', fitbit.saveFitBitOAuthData);
+
+var fitbitjob = require('cloud/fitbit/getDataFromFitbit.js');
+Parse.Cloud.job('getDataFromFitbit', fitbitjob.getDataFromFitbit);
 /**
  * Cloud functions for communication with algorithm
  */
@@ -395,4 +404,3 @@ Parse.Cloud.define('getChallenges', algorithm.getChallenges);
 
 var challenges = require('cloud/challenges/completion.js');
 Parse.Cloud.job('getChallengesCompletionRateOverPeriod', challenges.getChallengesCompletionRateOverPeriod);
-
