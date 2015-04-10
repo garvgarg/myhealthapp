@@ -4,7 +4,6 @@ var _ = require('underscore');
 
 var getDataFromFitbit = function(req, status) {
 
-
 	// get all users oauth data from OAuthFitbit Table: Parse
 	new Parse.Query('OAuthFitbit').include('user_owner').find().then(function(all_oauth_data) {
 
@@ -54,16 +53,12 @@ var getDataFromFitbit = function(req, status) {
 					activities_import.set('ExertiveHR', heartData.average[2].heartRate);
 				}));
 
-
 				// save new record with Fitbit data to Parse
 				allPromises.push(Parse.Promise.when(resultsPromiseArray).then(function() {
 					activities_import.set('Date', date);
 					activities_import.set('user', oauth_user);
 					saveUsersDataPromises.push(activities_import.save());
 				}));
-
-
-
 		});
 
 		// save all new records to Parse and return success
@@ -73,15 +68,12 @@ var getDataFromFitbit = function(req, status) {
 			});
 		});
 
-
 	});
-
-
-
 };
 
 
-/** create httpRequest to fitbit 
+/**
+ *  create httpRequest to fitbit
  *  return @promise
  */
 
@@ -106,7 +98,8 @@ var getInformationFromFitbit = function(url, oauth_token, oauth_token_secret) {
 
 }
 
-/** generate random sting of 10 numbers
+/**
+ * generate random sting of 10 numbers
  * return @string
  */
 var getRandomString = function() {
@@ -117,7 +110,8 @@ var getRandomString = function() {
 	return nonce;
 }
 
-/** create and encode signature from oauth parameters
+/**
+ * create and encode signature from oauth parameters
  * return encodeSignature
  */
 var getSignature = function(oauth_method, url, oauth_consumer_key, oauth_nonce, oauth_signature_method, oauth_timestamp, oauth_token, oauth_version, oauth_token_secret) {
@@ -133,11 +127,10 @@ var getSignature = function(oauth_method, url, oauth_consumer_key, oauth_nonce, 
 	var oauth_signature = h.digest("base64");
 	var encodedoauth_signature = encodeURIComponent(oauth_signature);
 	return encodedoauth_signature;
-
 }
 
-
-/** create current timestamp
+/**
+ * create current timestamp
  * return timestamp in correct format
  */
 var getTimestamp = function() {
@@ -145,8 +138,8 @@ var getTimestamp = function() {
 	return timestamp.substr(0, 10);
 }
 
-
-/** create authorization header string from oauth parameters
+/**
+ * create authorization header string from oauth parameters
  * return @string
  */
 var getAuthorizationHeader = function(oauth_consumer_key, oauth_nonce, oauth_signature, oauth_signature_method, oauth_timestamp, oauth_token, oauth_version) {
@@ -154,8 +147,5 @@ var getAuthorizationHeader = function(oauth_consumer_key, oauth_nonce, oauth_sig
 	return authorization;
 }
 
-
-
 //exports
-
 exports.getDataFromFitbit = getDataFromFitbit;
