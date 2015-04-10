@@ -81,7 +81,8 @@ var getDataFromFitbit = function(req, status) {
 };
 
 
-/** create httpRequest to fitbit 
+/** 
+ * create httpRequest to fitbit 
  *  return @promise
  */
 
@@ -106,7 +107,8 @@ var getInformationFromFitbit = function(url, oauth_token, oauth_token_secret) {
 
 }
 
-/** generate random sting of 10 numbers
+/** 
+ * generate random sting of 10 numbers
  * return @string
  */
 var getRandomString = function() {
@@ -117,7 +119,8 @@ var getRandomString = function() {
 	return nonce;
 }
 
-/** create and encode signature from oauth parameters
+/** 
+ * create and encode signature from oauth parameters
  * return encodeSignature
  */
 var getSignature = function(oauth_method, url, oauth_consumer_key, oauth_nonce, oauth_signature_method, oauth_timestamp, oauth_token, oauth_version, oauth_token_secret) {
@@ -137,7 +140,8 @@ var getSignature = function(oauth_method, url, oauth_consumer_key, oauth_nonce, 
 }
 
 
-/** create current timestamp
+/** 
+ *create current timestamp
  * return timestamp in correct format
  */
 var getTimestamp = function() {
@@ -146,7 +150,8 @@ var getTimestamp = function() {
 }
 
 
-/** create authorization header string from oauth parameters
+/** 
+ *create authorization header string from oauth parameters
  * return @string
  */
 var getAuthorizationHeader = function(oauth_consumer_key, oauth_nonce, oauth_signature, oauth_signature_method, oauth_timestamp, oauth_token, oauth_version) {
