@@ -2,6 +2,8 @@ var crypto = require('crypto');
 var moment = require('moment');
 var _ = require('underscore');
 
+
+
 var getDataFromFitbit = function(req, status) {
 
 
@@ -15,52 +17,52 @@ var getDataFromFitbit = function(req, status) {
 
 		// fetch data for each user oauth data 
 		_.each(all_oauth_data, function(oauth_data) {
-		
-				var resultsPromiseArray = [];
-				var oauth_token = oauth_data.get('OAuth_Token');
-				var oauth_token_secret = oauth_data.get('OAuth_Secret_Token');
-				var oauth_user = oauth_data.get('user_owner');
 
-				var yesterday = moment().subtract('days', 1).format('YYYY-MM-DD');
-				var oauth_method = 'GET';
+			var resultsPromiseArray = [];
+			var oauth_token = oauth_data.get('OAuth_Token');
+			var oauth_token_secret = oauth_data.get('OAuth_Secret_Token');
+			var oauth_user = oauth_data.get('user_owner');
 
-				// create new ActivitiesImport record in Parse
-				var ActivitiesImport = Parse.Object.extend("ActivitiesImport");
-				var activities_import = new ActivitiesImport();
+			var yesterday = moment().subtract('days', 1).format('YYYY-MM-DD');
+			var oauth_method = 'GET';
 
-				// get sleep data from fitbit and save to Parse
-				var url = 'https://api.fitbit.com/1/user/-/sleep/date/' + yesterday + '.json';
-				resultsPromiseArray.push(getInformationFromFitbit(url, oauth_token, oauth_token_secret).then(function(httpResponse) {
-					var sleepData = JSON.parse(httpResponse.text);
-					activities_import.set('TotalTimeInBed', sleepData.summary.totalTimeInBed);
-					activities_import.set('TotalSleepMinutes', sleepData.summary.totalMinutesAsleep);
-					activities_import.set('TotalSleepRecords', sleepData.summary.totalSleepRecords);
-				}));
+			// create new ActivitiesImport record in Parse
+			var ActivitiesImport = Parse.Object.extend("ActivitiesImport");
+			var activities_import = new ActivitiesImport();
 
-				// get activities data from fitbit and save to Parse
-				url = 'https://api.fitbit.com/1/user/-/activities/date/' + yesterday + '.json';
-				resultsPromiseArray.push(getInformationFromFitbit(url, oauth_token, oauth_token_secret).then(function(httpResponse) {
-					var activitiesData = JSON.parse(httpResponse.text);
-					activities_import.set('Steps', activitiesData.summary.steps);
-					activities_import.set('Calories', activitiesData.summary.caloriesOut);
-				}));
+			// get sleep data from fitbit and save to Parse
+			var url = 'https://api.fitbit.com/1/user/-/sleep/date/' + yesterday + '.json';
+			resultsPromiseArray.push(getInformationFromFitbit(url, oauth_token, oauth_token_secret).then(function(httpResponse) {
+				var sleepData = JSON.parse(httpResponse.text);
+				activities_import.set('TotalTimeInBed', sleepData.summary.totalTimeInBed);
+				activities_import.set('TotalSleepMinutes', sleepData.summary.totalMinutesAsleep);
+				activities_import.set('TotalSleepRecords', sleepData.summary.totalSleepRecords);
+			}));
 
-				// get heart data from fitbit and save to Parse
-				url = 'https://api.fitbit.com/1/user/-/heart/date/' + yesterday + '.json';
-				resultsPromiseArray.push(getInformationFromFitbit(url, oauth_token, oauth_token_secret).then(function(httpResponse) {
-					var heartData = JSON.parse(httpResponse.text);
-					activities_import.set('RestingHR', heartData.average[0].heartRate);
-					activities_import.set('NormalHR', heartData.average[1].heartRate);
-					activities_import.set('ExertiveHR', heartData.average[2].heartRate);
-				}));
+			// get activities data from fitbit and save to Parse
+			url = 'https://api.fitbit.com/1/user/-/activities/date/' + yesterday + '.json';
+			resultsPromiseArray.push(getInformationFromFitbit(url, oauth_token, oauth_token_secret).then(function(httpResponse) {
+				var activitiesData = JSON.parse(httpResponse.text);
+				activities_import.set('Steps', activitiesData.summary.steps);
+				activities_import.set('Calories', activitiesData.summary.caloriesOut);
+			}));
+
+			// get heart data from fitbit and save to Parse
+			url = 'https://api.fitbit.com/1/user/-/heart/date/' + yesterday + '.json';
+			resultsPromiseArray.push(getInformationFromFitbit(url, oauth_token, oauth_token_secret).then(function(httpResponse) {
+				var heartData = JSON.parse(httpResponse.text);
+				activities_import.set('RestingHR', heartData.average[0].heartRate);
+				activities_import.set('NormalHR', heartData.average[1].heartRate);
+				activities_import.set('ExertiveHR', heartData.average[2].heartRate);
+			}));
 
 
-				// save new record with Fitbit data to Parse
-				allPromises.push(Parse.Promise.when(resultsPromiseArray).then(function() {
-					activities_import.set('Date', date);
-					activities_import.set('user', oauth_user);
-					saveUsersDataPromises.push(activities_import.save());
-				}));
+			// save new record with Fitbit data to Parse
+			allPromises.push(Parse.Promise.when(resultsPromiseArray).then(function() {
+				activities_import.set('Date', date);
+				activities_import.set('user', oauth_user);
+				saveUsersDataPromises.push(activities_import.save());
+			}));
 
 
 
