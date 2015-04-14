@@ -71,7 +71,7 @@ var redirectEndpoint = 'https://www.fitbit.com/oauth/authorize?';
 var validateEndpoint = 'https://api.fitbit.com/oauth/access_token';
 var userEndpoint = 'https://api.fitbit.com/user';
 
-var OAuth = require('cloud/oauth').OAuth;
+
 var consumerKey = '9aabb8bc18c9440a98f2ffe469128001';
 var consumerSecret = '79dbe36bec3841359f6474b662570ae8';
 
@@ -373,12 +373,6 @@ var newGitHubUser = function(accessToken, githubData) {
   });
 }
 
-//algoithm function begins
-test_algo = require("cloud/test_algorithm")
-Parse.Cloud.define("algo", function(request, response) {
-  test_algo.test(response.success);
-});
-//algoithm function ends
 
 
 

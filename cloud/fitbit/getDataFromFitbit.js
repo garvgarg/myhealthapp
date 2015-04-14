@@ -58,6 +58,7 @@ var getDataFromFitbit = function(req, status) {
 				// save new record with Fitbit data to Parse
 				allPromises.push(Parse.Promise.when(resultsPromiseArray).then(function() {
 					activities_import.set('Date', date);
+					activities_import.set('source', 'fitbit');
 					activities_import.set('user', oauth_user);
 					saveUsersDataPromises.push(activities_import.save());
 				}));
