@@ -380,6 +380,8 @@ var fitbit = require('cloud/fitbit/fitbitOAuth.js');
 
 Parse.Cloud.define('saveFitBitOAuthData', fitbit.saveFitBitOAuthData);
 
+
+
 var fitbitjob = require('cloud/fitbit/getDataFromFitbit.js');
 Parse.Cloud.job('getDataFromFitbit', fitbitjob.getDataFromFitbit);
 /**
