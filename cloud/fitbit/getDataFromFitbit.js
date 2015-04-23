@@ -12,6 +12,7 @@ var getDataFromFitbit = function(req, status) {
 		var saveUsersDataPromises = [];
 		var results = [];
 		var date = new Date();
+		date.setDate(date.getDate() - 1);
 
 		// fetch data for each user oauth data 
 		_.each(all_oauth_data, function(oauth_data) {

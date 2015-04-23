@@ -60,6 +60,7 @@ var getUsersDataFromFitbit = function(user) {
 		var saveUsersDataPromises = [];
 		var results = [];
 		var date = new Date();
+		date.setDate(date.getDate() - 1);
 
 		var resultsPromiseArray = [];
 		var oauth_token = oauth_data[0].get('OAuth_Token');
