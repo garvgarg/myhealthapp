@@ -5,6 +5,8 @@ var express = require('express');
 var querystring = require('querystring');
 var _ = require('underscore');
 var Buffer = require('buffer').Buffer;
+var moment = require('moment');
+var crypto= require('crypto');
 
 /**
  * Create an express application instance
@@ -32,19 +34,22 @@ restrictedAcl.setPublicWriteAccess(false);
 /**
  * Global app configuration section
  */
-app.set('views', 'cloud/views');  // Specify the folder to find templates
-app.set('view engine', 'ejs');    // Set the template engine
-app.use(express.bodyParser());    // Middleware for reading request body
+app.set('views', 'cloud/views'); // Specify the folder to find templates
+app.set('view engine', 'ejs'); // Set the template engine
+app.use(express.bodyParser()); // Middleware for reading request body
 
-  // You could have a "Log In" link on your website pointing to this.
-  app.get('/myhealthlogin', function(req, res) {
-    // Renders the login form asking for username and password.
-    res.render('myhealthlogin.ejs');
-  });
 
-  // Clicking submit on the login form triggers this.
-  app.post('/myhealthlogin', function(req, res) {
-    Parse.User.logIn(req.body.username, req.body.password).then(function() {
+/**
+ * create Parse.request to algorithm api
+ *
+ * return api-response on Parse.client-side
+ */
+
+
+
+// Clicking submit on the login form triggers this.
+app.post('/myhealthlogin', function(req, res) {
+  Parse.User.logIn(req.body.username, req.body.password).then(function() {
       // Login succeeded, redirect to homepage.
       // parseExpressCookieSession will automatically set cookie. 
       res.render('login.ejs');
@@ -53,20 +58,20 @@ app.use(express.bodyParser());    // Middleware for reading request body
       // Login failed, redirect back to login form.
       res.redirect('/');
     });
-  });
+});
 
-  // You could have a "Log Out" link on your website pointing to this.
-  app.get('/logout', function(req, res) {
-    Parse.User.logOut();
-    res.redirect('/');
-  });
+// You could have a "Log Out" link on your website pointing to this.
+app.get('/logout', function(req, res) {
+  Parse.User.logOut();
+  res.redirect('/');
+});
 
 var requestEndpoint = 'https://api.fitbit.com/oauth/request_token';
 var redirectEndpoint = 'https://www.fitbit.com/oauth/authorize?';
 var validateEndpoint = 'https://api.fitbit.com/oauth/access_token';
 var userEndpoint = 'https://api.fitbit.com/user';
 
-var OAuth = require('cloud/oauth').OAuth;
+
 var consumerKey = '9aabb8bc18c9440a98f2ffe469128001';
 var consumerSecret = '79dbe36bec3841359f6474b662570ae8';
 
@@ -76,53 +81,55 @@ var consumerSecret = '79dbe36bec3841359f6474b662570ae8';
  * When called, render the login.ejs view
  */
 app.get('/', function(req, res) {
-   // res.render('myhealthlogin.ejs');
+  // res.render('myhealthlogin.ejs');
   res.render('login', {});
 });
 
+
+
 var oauth_access_callback = function(err, token, token_secret, parsedQueryString, data) {
-	console.log("Oauth Access Callback function called");
-	console.log(err);
-	console.log(token);
-	console.log(token_secret);
-	console.log(parsedQueryString);
+  console.log("Oauth Access Callback function called");
+  console.log(err);
+  console.log(token);
+  console.log(token_secret);
+  console.log(parsedQueryString);
 }
 
 var oauth_callback = function(err, token, token_secret, parsedQueryString, data, res) {
-   
-   console.error("Call back function called");
-   console.error(err);
-   console.error(token);
-   console.error(token_secret);
-   console.error(parsedQueryString);
-   var oa_data = querystring.parse(data);
-   var url = redirectEndpoint + data;
-   console.log(url);   
-   var requestOptions = {
-	url : url,
-	followRedirects: true,
-   };
 
-   requestOptions.success = function(response) {
-        console.log("response status: " + response.status);	
-   } 
-   
-   requestOptions.error = function(err) {
-        console.log("error");
-        callback(err);
-   };
-   
-   Parse.Cloud.httpRequest(requestOptions);
-}
-/**
- * Login with GitHub route.
- *
- * When called, generate a request token and redirect the browser to GitHub.
- */
+    console.error("Call back function called");
+    console.error(err);
+    console.error(token);
+    console.error(token_secret);
+    console.error(parsedQueryString);
+    var oa_data = querystring.parse(data);
+    var url = redirectEndpoint + data;
+    console.log(url);
+    var requestOptions = {
+      url: url,
+      followRedirects: true,
+    };
+
+    requestOptions.success = function(response) {
+      console.log("response status: " + response.status);
+    }
+
+    requestOptions.error = function(err) {
+      console.log("error");
+      callback(err);
+    };
+
+    Parse.Cloud.httpRequest(requestOptions);
+  }
+  /**
+   * Login with GitHub route.
+   *
+   * When called, generate a request token and redirect the browser to GitHub.
+   */
 app.get('/authorize', function(req, res) {
 
-   var oa = new OAuth(requestEndpoint, redirectEndpoint, consumerKey, consumerSecret, "1.0", null, "HMAC-SHA1");
-   oa.getOAuthRequestToken(oauth_callback);
+  var oa = new OAuth(requestEndpoint, redirectEndpoint, consumerKey, consumerSecret, "1.0", null, "HMAC-SHA1");
+  oa.getOAuthRequestToken(oauth_callback);
 });
 
 /**
@@ -142,7 +149,9 @@ app.get('/oauthCallback', function(req, res) {
    * Render an error page if this is invalid.
    */
   if (!(data && data.code && data.state)) {
-    res.render('error', { errorMessage: 'Invalid auth response received.'});
+    res.render('error', {
+      errorMessage: 'Invalid auth response received.'
+    });
     return;
   }
   var query = new Parse.Query(TokenRequest);
@@ -187,7 +196,9 @@ app.get('/oauthCallback', function(req, res) {
      * Render a page which sets the current user on the client-side and then
      *   redirects to /main
      */
-    res.render('store_auth', { sessionToken: user.getSessionToken() });
+    res.render('store_auth', {
+      sessionToken: user.getSessionToken()
+    });
   }, function(error) {
     /**
      * If the error is an object error (e.g. from a Parse function) convert it
@@ -196,7 +207,9 @@ app.get('/oauthCallback', function(req, res) {
     if (error && error.code && error.error) {
       error = error.code + ' ' + error.error;
     }
-    res.render('error', { errorMessage: JSON.stringify(error) });
+    res.render('error', {
+      errorMessage: JSON.stringify(error)
+    });
   });
 
 });
@@ -228,7 +241,9 @@ Parse.Cloud.define('getGitHubData', function(request, response) {
   query.equalTo('user', request.user);
   query.ascending('createdAt');
   Parse.Promise.as().then(function() {
-    return query.first({ useMasterKey: true });
+    return query.first({
+      useMasterKey: true
+    });
   }).then(function(tokenData) {
     if (!tokenData) {
       return Parse.Promise.error('No GitHub data found.');
@@ -241,6 +256,7 @@ Parse.Cloud.define('getGitHubData', function(request, response) {
     response.error(error);
   });
 });
+
 
 /**
  * This function is called when GitHub redirects the user back after
@@ -272,7 +288,9 @@ var getGitHubUserDetails = function(accessToken) {
   return Parse.Cloud.httpRequest({
     method: 'GET',
     url: githubUserEndpoint,
-    params: { access_token: accessToken },
+    params: {
+      access_token: accessToken
+    },
     headers: {
       'User-Agent': 'Parse.com Cloud Code'
     }
@@ -289,14 +307,18 @@ var upsertGitHubUser = function(accessToken, githubData) {
   query.equalTo('githubId', githubData.id);
   query.ascending('createdAt');
   // Check if this githubId has previously logged in, using the master key
-  return query.first({ useMasterKey: true }).then(function(tokenData) {
+  return query.first({
+    useMasterKey: true
+  }).then(function(tokenData) {
     // If not, create a new user.
     if (!tokenData) {
       return newGitHubUser(accessToken, githubData);
     }
     // If found, fetch the user.
     var user = tokenData.get('user');
-    return user.fetch({ useMasterKey: true }).then(function(user) {
+    return user.fetch({
+      useMasterKey: true
+    }).then(function(user) {
       // Update the accessToken if it is different.
       if (accessToken !== tokenData.get('accessToken')) {
         tokenData.set('accessToken', accessToken);
@@ -305,7 +327,9 @@ var upsertGitHubUser = function(accessToken, githubData) {
        * This save will not use an API request if the token was not changed.
        * e.g. when a new user is created and upsert is called again.
        */
-      return tokenData.save(null, { useMasterKey: true });
+      return tokenData.save(null, {
+        useMasterKey: true
+      });
     }).then(function(obj) {
       // Return the user object.
       return Parse.Promise.as(user);
@@ -341,15 +365,38 @@ var newGitHubUser = function(accessToken, githubData) {
     ts.set('user', user);
     ts.setACL(restrictedAcl);
     // Use the master key because TokenStorage objects should be protected.
-    return ts.save(null, { useMasterKey: true });
+    return ts.save(null, {
+      useMasterKey: true
+    });
   }).then(function(tokenStorage) {
     return upsertGitHubUser(accessToken, githubData);
   });
 }
 
-//algoithm function begins
-test_algo = require("cloud/test_algorithm")
-Parse.Cloud.define("algo", function(request, response) {
-	test_algo.test(response.success);  
-});
-//algoithm function ends
+
+
+
+var fitbit = require('cloud/fitbit/fitbitOAuth.js');
+
+Parse.Cloud.define('saveFitBitOAuthData', fitbit.saveFitBitOAuthData);
+
+
+
+var fitbitjob = require('cloud/fitbit/getDataFromFitbit.js');
+Parse.Cloud.job('getDataFromFitbit', fitbitjob.getDataFromFitbit);
+/**
+ * Cloud functions for communication with algorithm
+ */
+var average = require('cloud/average/average.js');
+
+Parse.Cloud.job('calculateAverageFromFitBit', average.calculateAverageFromFitBit);
+
+// Import functions
+var algorithm = require('cloud/algorithm/interface.js');
+
+// Define endpoints
+Parse.Cloud.define('fetchDataFromAlgorithm', algorithm.fetchDataFromAlgorithm);
+Parse.Cloud.define('getChallenges', algorithm.getChallenges);
+
+var challenges = require('cloud/challenges/completion.js');
+Parse.Cloud.job('getChallengesCompletionRateOverPeriod', challenges.getChallengesCompletionRateOverPeriod);
